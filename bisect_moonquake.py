@@ -1,16 +1,11 @@
-# Import libraries
-import numpy as np
+"""Cut out relevant samples from the training set"""
 import pandas as pd
 from obspy import UTCDateTime, read
 from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
 import os
-from scipy import signal
-from matplotlib import cm
 from pathlib import Path
 from tqdm import tqdm
 
-from from_notebook import plot_impact_spectrogram
 
 # Define directories for use
 CAT_LUNAR_DIR = './space_apps_2024_seismic_detection/data/lunar/training/catalogs/'
@@ -48,7 +43,6 @@ if __name__ == "__main__":
         utc_arrival = UTCDateTime(arrival_time)
         endtime = UTCDateTime(arrival_time + timedelta(seconds=7000))
         stream_out.trim(utc_arrival, endtime)
-        # plot_impact_spectrogram(stream_out.traces[0].copy(), arrival)
         fout_name = test_filename + "_trimmed_7000_sec.mseed"
         stream_out.write(os.path.join(PREPROCESSED_LUNAR_DIR, fout_name), format="mseed")
 
