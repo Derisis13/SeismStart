@@ -5,6 +5,7 @@ import create_matched_filter
 import matplotlib.pyplot as plt
 from pathlib import Path
 from tqdm import tqdm
+import json
 
 IMGDIR = "./images"
 
@@ -19,6 +20,7 @@ def main():
     matched_filter = create_matched_filter.create_matched_filter()
     outfolder = Path(IMGDIR + "/lunar/training/")
     outfolder.mkdir(parents=True, exist_ok=True)
+    data = {}
     for row in tqdm(CAT_LUNAR.iloc):
         arrival_time = datetime.strptime(row['time_abs(%Y-%m-%dT%H:%M:%S.%f)'],'%Y-%m-%dT%H:%M:%S.%f')
         test_filename = row.filename
@@ -29,7 +31,8 @@ def main():
             test_filename = test_filename.replace('HR00', 'HR02')
         st, arrival = from_mseed(test_filename, LUNAR_DATA_DIR, arrival_time)
         estimated_arrival, likelyhood = do_detection(st, matched_filter)
-        print(arrival - estimated_arrival)
+        diff = (arrival - estimated_arrival)
+        data.update({test_filename: diff})
         # Plot trace
         outfile = outfolder.joinpath(test_filename + "_correlation.png")
         fig,ax = plt.subplots(1,1,figsize=(20,6))
@@ -43,6 +46,8 @@ def main():
         # plt.show()
         plt.savefig(outfile)
         plt.close(fig)
+    with open("training_report.json", "w") as jsonfile:
+        json.dump(data, jsonfile, indent=2)
 
 
 if __name__ == "__main__":
