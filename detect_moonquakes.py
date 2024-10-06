@@ -1,4 +1,3 @@
-import os
 from scipy.signal import correlate
 from bisect_moonquake import CAT_LUNAR, LUNAR_DATA_DIR, PREPROCESSED_LUNAR_DIR, from_mseed
 from datetime import datetime
@@ -8,6 +7,14 @@ from pathlib import Path
 from tqdm import tqdm
 
 IMGDIR = "./images"
+
+def do_detection(st, matched_filter):
+    st.traces[0].data *= 1 / st.traces[0].data.max()
+    st.traces[0].decimate(3)
+    likelyhood = correlate(st.traces[0].data, matched_filter, mode='same')
+    estimated_arrival = (likelyhood.argmax() - matched_filter.shape[0] / 2) * st.traces[0].stats.delta
+    return estimated_arrival, likelyhood
+
 def main():
     matched_filter = create_matched_filter.create_matched_filter()
     outfolder = Path(IMGDIR + "/lunar/training/")
@@ -20,11 +27,8 @@ def main():
         except FileNotFoundError:
             # Because csv is faulty...
             test_filename = test_filename.replace('HR00', 'HR02')
-            st, arrival = from_mseed(test_filename, LUNAR_DATA_DIR, arrival_time)
-        st.traces[0].data *= 1 / st.traces[0].data.max()
-        st.traces[0].decimate(3)
-        likelyhood = correlate(st.traces[0].data, matched_filter, mode='same')
-        estimated_arrival = (likelyhood.argmax() - matched_filter.shape[0] / 2) * st.traces[0].stats.delta
+        st, arrival = from_mseed(test_filename, LUNAR_DATA_DIR, arrival_time)
+        estimated_arrival, likelyhood = do_detection(st, matched_filter)
         print(arrival - estimated_arrival)
         # Plot trace
         outfile = outfolder.joinpath(test_filename + "_correlation.svg")
@@ -34,6 +38,7 @@ def main():
         ax.axvline(x = estimated_arrival, color='green',label='Est. Arrival')
         # plt.show()
         plt.savefig(outfile)
+        plt.close(fig)
 
 
 if __name__ == "__main__":
